@@ -1,0 +1,666 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "OTP Verification Platform",
+    "version": "1.0.0",
+    "description": "API для регистрации, авторизации, администрирования OTP policy и подтверждения операций одноразовыми кодами."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8080",
+      "description": "Локальный запуск"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Auth",
+      "description": "Регистрация и получение bearer token"
+    },
+    {
+      "name": "Management",
+      "description": "Администрирование пользователей и OTP policy"
+    },
+    {
+      "name": "Verifications",
+      "description": "Открытие и подтверждение verification-ticket"
+    }
+  ],
+  "paths": {
+    "/auth/signup": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Регистрация account",
+        "description": "Регистрирует администратора или обычного пользователя. Второй администратор запрещен.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignupRequest"
+              },
+              "examples": {
+                "admin": {
+                  "summary": "Администратор",
+                  "value": {
+                    "username": "admin",
+                    "rawPassword": "123456",
+                    "requestedRole": "ADMIN"
+                  }
+                },
+                "user": {
+                  "summary": "Пользователь",
+                  "value": {
+                    "username": "user",
+                    "rawPassword": "123456",
+                    "requestedRole": "USER"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Account зарегистрирован",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountViewResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/auth/token": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Получение bearer token",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              },
+              "example": {
+                "username": "user",
+                "rawPassword": "123456"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Token выпущен",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponseResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          }
+        }
+      }
+    },
+    "/management/otp-policy": {
+      "patch": {
+        "tags": ["Management"],
+        "summary": "Обновление OTP policy",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OtpPolicyRequest"
+              },
+              "example": {
+                "digitsCount": 6,
+                "ttlSeconds": 300
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OTP policy обновлена",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OtpPolicyViewResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/management/accounts": {
+      "get": {
+        "tags": ["Management"],
+        "summary": "Список обычных пользователей",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Список account без администраторов",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountListResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/management/accounts/{accountId}": {
+      "delete": {
+        "tags": ["Management"],
+        "summary": "Удаление пользователя и связанных OTP",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 2
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Пользователь удален",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmptyResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/verifications": {
+      "post": {
+        "tags": ["Verifications"],
+        "summary": "Открытие verification-ticket",
+        "description": "Генерирует OTP-код, сохраняет его в БД и доставляет выбранным маршрутом.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartVerificationRequest"
+              },
+              "example": {
+                "businessKey": "invoice-900",
+                "route": "FILE",
+                "target": "local-check"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Verification-ticket открыт",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StartVerificationResponseResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/verifications/confirm": {
+      "post": {
+        "tags": ["Verifications"],
+        "summary": "Подтверждение verification-ticket",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmCodeRequest"
+              },
+              "example": {
+                "businessKey": "invoice-900",
+                "submittedCode": "123456"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Результат проверки кода",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfirmCodeResponseResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "Некорректный запрос",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResult"
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "Bearer token отсутствует или недействителен",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResult"
+            }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "Недостаточно прав для операции",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResult"
+            }
+          }
+        }
+      },
+      "Conflict": {
+        "description": "Конфликт данных",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResult"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "ApiError": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "request.invalid"
+          },
+          "message": {
+            "type": "string",
+            "example": "Пароль должен содержать минимум 6 символов"
+          }
+        }
+      },
+      "ErrorResult": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "nullable": true,
+            "example": null
+          },
+          "error": {
+            "$ref": "#/components/schemas/ApiError"
+          }
+        }
+      },
+      "EmptyResult": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "nullable": true,
+            "example": null
+          },
+          "error": {
+            "nullable": true,
+            "example": null
+          }
+        }
+      },
+      "SignupRequest": {
+        "type": "object",
+        "required": ["username", "rawPassword", "requestedRole"],
+        "properties": {
+          "username": {
+            "type": "string",
+            "example": "user"
+          },
+          "rawPassword": {
+            "type": "string",
+            "format": "password",
+            "minLength": 6,
+            "example": "123456"
+          },
+          "requestedRole": {
+            "$ref": "#/components/schemas/AccountRole"
+          }
+        }
+      },
+      "LoginRequest": {
+        "type": "object",
+        "required": ["username", "rawPassword"],
+        "properties": {
+          "username": {
+            "type": "string",
+            "example": "user"
+          },
+          "rawPassword": {
+            "type": "string",
+            "format": "password",
+            "example": "123456"
+          }
+        }
+      },
+      "TokenResponse": {
+        "type": "object",
+        "properties": {
+          "tokenType": {
+            "type": "string",
+            "example": "Bearer"
+          },
+          "accessToken": {
+            "type": "string",
+            "example": "eyJhbGciOiJIUzI1NiJ9..."
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "AccountView": {
+        "type": "object",
+        "properties": {
+          "accountId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 2
+          },
+          "username": {
+            "type": "string",
+            "example": "user"
+          },
+          "accountRole": {
+            "$ref": "#/components/schemas/AccountRole"
+          },
+          "registeredAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "AccountRole": {
+        "type": "string",
+        "enum": ["ADMIN", "USER"]
+      },
+      "OtpPolicyRequest": {
+        "type": "object",
+        "required": ["digitsCount", "ttlSeconds"],
+        "properties": {
+          "digitsCount": {
+            "type": "integer",
+            "minimum": 4,
+            "maximum": 12,
+            "example": 6
+          },
+          "ttlSeconds": {
+            "type": "integer",
+            "minimum": 30,
+            "maximum": 86400,
+            "example": 300
+          }
+        }
+      },
+      "OtpPolicyView": {
+        "type": "object",
+        "properties": {
+          "digitsCount": {
+            "type": "integer",
+            "example": 6
+          },
+          "ttlSeconds": {
+            "type": "integer",
+            "example": 300
+          }
+        }
+      },
+      "StartVerificationRequest": {
+        "type": "object",
+        "required": ["businessKey", "route", "target"],
+        "properties": {
+          "businessKey": {
+            "type": "string",
+            "example": "invoice-900"
+          },
+          "route": {
+            "$ref": "#/components/schemas/DeliveryRoute"
+          },
+          "target": {
+            "type": "string",
+            "example": "local-check"
+          }
+        }
+      },
+      "StartVerificationResponse": {
+        "type": "object",
+        "properties": {
+          "businessKey": {
+            "type": "string",
+            "example": "invoice-900"
+          },
+          "route": {
+            "$ref": "#/components/schemas/DeliveryRoute"
+          },
+          "validUntil": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ConfirmCodeRequest": {
+        "type": "object",
+        "required": ["businessKey", "submittedCode"],
+        "properties": {
+          "businessKey": {
+            "type": "string",
+            "example": "invoice-900"
+          },
+          "submittedCode": {
+            "type": "string",
+            "example": "123456"
+          }
+        }
+      },
+      "ConfirmCodeResponse": {
+        "type": "object",
+        "properties": {
+          "accepted": {
+            "type": "boolean",
+            "example": true
+          },
+          "result": {
+            "type": "string",
+            "enum": ["code_accepted", "code_expired", "code_mismatch"],
+            "example": "code_accepted"
+          }
+        }
+      },
+      "DeliveryRoute": {
+        "type": "string",
+        "enum": ["MAIL", "SMS", "TELEGRAM", "FILE"]
+      },
+      "AccountViewResult": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/AccountView"
+          },
+          "error": {
+            "nullable": true,
+            "example": null
+          }
+        }
+      },
+      "TokenResponseResult": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/TokenResponse"
+          },
+          "error": {
+            "nullable": true,
+            "example": null
+          }
+        }
+      },
+      "OtpPolicyViewResult": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/OtpPolicyView"
+          },
+          "error": {
+            "nullable": true,
+            "example": null
+          }
+        }
+      },
+      "AccountListResult": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AccountView"
+            }
+          },
+          "error": {
+            "nullable": true,
+            "example": null
+          }
+        }
+      },
+      "StartVerificationResponseResult": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/StartVerificationResponse"
+          },
+          "error": {
+            "nullable": true,
+            "example": null
+          }
+        }
+      },
+      "ConfirmCodeResponseResult": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ConfirmCodeResponse"
+          },
+          "error": {
+            "nullable": true,
+            "example": null
+          }
+        }
+      }
+    }
+  }
+}

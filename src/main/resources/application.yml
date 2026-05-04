@@ -1,0 +1,48 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: otp-verification
+  datasource:
+    url: jdbc:postgresql://localhost:5432/otp_db
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+  sql:
+    init:
+      mode: always
+
+app:
+  jwt:
+    secret: change-me-to-long-random-secret
+    ttl-minutes: 30
+  otp:
+    cleanup-delay-ms: 60000
+
+mail:
+  username: your_email@example.com
+  password: your_password
+  from: your_email@example.com
+  smtp:
+    host: smtp.example.com
+    port: 587
+    auth: true
+    starttls-enable: true
+
+smpp:
+  host: localhost
+  port: 2775
+  system-id: smppclient1
+  password: password
+  system-type: OTP
+  source-addr: OTPService
+
+telegram:
+  bot-token: token
+  chat-id: chat_id
+
+logging:
+  level:
+    root: INFO
+    me.delous.otp: INFO
