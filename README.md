@@ -4,7 +4,7 @@
 
 Сервис открывает verification-ticket для пользовательской операции, генерирует одноразовый код и подтверждает операцию по введенному коду. Проект основан на Spring MVC и состоит из следующих модулей: `account`, `admin`, `otp`, `delivery`, `security`, `logging`.
 
-## Technology Stack
+## Стек технологий
 
 - Java 17
 - Gradle
@@ -98,7 +98,7 @@ app:
 - `verification.confirmation.rejected`
 - `otp.cleanup.finished`
 
-## Проверка Сборки
+## Проверка сборки
 
 ```bash
 gradle bootJar
