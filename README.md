@@ -10,7 +10,7 @@
 - Gradle
 - Spring MVC / Spring Boot
 - PostgreSQL 17
-- Spring JdbcTemplate. Доступ к PostgreSQL реализован через Spring JdbcTemplate, который использует JDBC API.
+- Spring JdbcTemplate.
 - DTO на Java record
 - JWT через Auth0 java-jwt
 - SLF4J + Logback
@@ -18,15 +18,11 @@
 - Angus Mail
 - JSMPP 3.0.1
 - OkHttp для Telegram Bot API
-- Ручная Swagger UI документация на `/docs`
+- Swagger UI документация на `/docs`
 
-## База Данных
+## База данных
 
-Приложение ожидает PostgreSQL 17 и базу `otp_db`.
-
-```sql
-create database otp_db;
-```
+Приложение ожидает PostgreSQL 17 и базу c названием `otp_db`.
 
 Подключение настраивается в [application.yml](src/main/resources/application.yml):
 
@@ -68,7 +64,7 @@ gradle bootRun
 6. Для пользовательских сценариев используйте token пользователя: `POST /verifications`, затем `POST /verifications/confirm`.
 7. Для admin-сценариев используйте token администратора: `PATCH /management/otp-policy`, `GET /management/accounts`, `DELETE /management/accounts/{accountId}`.
 
-## Каналы Доставки
+## Каналы доставки
 
 Настройки email, SMPP и Telegram находятся в [application.yml](src/main/resources/application.yml).
 
@@ -76,7 +72,7 @@ Email отправляется через SMTP и Angus Mail. SMS отправл
 
 В `application.yml` указаны тестовые параметры, поэтому в целях безопасности (или работоспособности, как в случае с Telegram ботом), рекомендуется указать свои значения для в настройках приложения.
 
-## Фоновая Обработка
+## Фоновая обработка
 
 `OtpCleanupJob` раз в заданный интервал (1 минута) помечает просроченные активные коды как `EXPIRED`.
 
